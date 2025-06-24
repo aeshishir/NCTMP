@@ -9,11 +9,10 @@
     body, html { margin: 0; padding: 0; height: 100%; }
     #map { height: 100vh; width: 100vw; }
 
-    .info-box, .legend {
+    .info-box, .legend, .label-toggle {
       background: white;
       padding: 5px;
       font-size: 12px;
-      line-height: 1.4em;
       box-shadow: 0 0 8px rgba(0,0,0,0.3);
       border-radius: 4px;
       width: 100px;
@@ -30,6 +29,13 @@
       position: absolute;
       bottom: 10px;
       right: 10px;
+      z-index: 1000;
+    }
+
+    .label-toggle {
+      position: absolute;
+      top: 10px;
+      left: 10px;
       z-index: 1000;
     }
 
@@ -51,6 +57,16 @@
     .solid-gray { border-color: #828282; border-style: solid; border-width: 1px; }
     .dash-gray  { border-color: #828282; border-style: dashed; border-width: 1px; }
     .boundary    { border-color: #4900EE; border-style: solid; border-width: 3px; }
+
+    .road-label {
+      color: #000;
+      font-size: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 1px 3px;
+      border-radius: 2px;
+      white-space: nowrap;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -62,6 +78,11 @@
     <div class="legend-line"><div class="line-swatch dash-red"></div>Primary (Ext)</div>
     <div class="legend-line"><div class="line-swatch solid-gray"></div>Secondary</div>
     <div class="legend-line"><div class="line-swatch dash-gray"></div>Secondary (Ext)</div>
+  </div>
+  <div class="label-toggle">
+    <label>
+      <input type="checkbox" id="toggleLabels"> Show Road Names
+    </label>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -85,6 +106,7 @@
 
     const boundaryLayer = L.layerGroup();
     const roadLayer = L.layerGroup();
+    const roadLabels = [];
 
     const baseLayers = {
       "Esri Light Gray": lightGrayBase,
@@ -132,7 +154,7 @@
         map.fitBounds(layer.getBounds(), { maxZoom: 15 });
       });
 
-    // Load roads
+    // Load roads and create labels
     fetch('./Proposed_Road_2_NCC.geojson.geojson')
       .then(res => res.json())
       .then(data => {
@@ -149,11 +171,32 @@
           },
           onEachFeature: (feature, layer) => {
             layer.on('click', () => updateInfoBox(feature.properties));
+            const name = feature.properties?.Road_Name;
+            if (name) {
+              const center = layer.getBounds().getCenter();
+              const label = L.marker(center, {
+                icon: L.divIcon({
+                  className: 'road-label',
+                  html: name,
+                  iconSize: null
+                })
+              });
+              roadLabels.push(label);
+            }
           }
         });
         layer.addTo(roadLayer);
         roadLayer.addTo(map);
       });
+
+    // Toggle road labels
+    document.getElementById('toggleLabels').addEventListener('change', function (e) {
+      if (e.target.checked) {
+        roadLabels.forEach(label => label.addTo(map));
+      } else {
+        roadLabels.forEach(label => map.removeLayer(label));
+      }
+    });
   </script>
 </body>
 </html>
