@@ -39,14 +39,13 @@
         console.log("Loaded GeoJSON:", data);
         const boundaryLayer = L.geoJSON(data, {
           style: {
-            color: 'red',
-            weight: 2,
-            fillColor: '#f03',
-            fillOpacity: 0.3
+            color: '#4900EE',   // Deep purple-blue border
+            weight: 3,          // 3px line thickness
+            fillOpacity: 0      // Transparent fill
           },
           onEachFeature: (feature, layer) => layer.bindPopup("Project Area")
         }).addTo(map);
-        map.fitBounds(boundaryLayer.getBounds()); // Zoom to boundary
+        map.fitBounds(boundaryLayer.getBounds(), { maxZoom: 15 });
       })
       .catch(err => {
         console.error("Failed to load GeoJSON:", err);
