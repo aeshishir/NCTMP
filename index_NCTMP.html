@@ -18,39 +18,61 @@
     // 1. Initialize the map
     var map = L.map('map').setView([23.8103, 90.4125], 13);
 
-    // 2. Add Esri Light Gray Canvas base layer
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    // 2. Define base layers
+    var lightGrayBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
       maxZoom: 16
-    }).addTo(map);
+    }).addTo(map); // Default base
 
-    // Optional: Add reference labels on top
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+    var osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    });
+
+    var lightGrayLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 16
-    }).addTo(map);
+    }).addTo(map); // Add labels on top
 
-    // 3. Load and display Project_Boundary.geojson
+    // 3. Placeholder for overlay
+    var boundaryLayer = L.layerGroup();
+
+    // 4. Fetch and display the GeoJSON
     fetch('./Project_Boundary.geojson')
       .then(res => {
         if (!res.ok) throw new Error("GeoJSON not found");
         return res.json();
       })
       .then(data => {
-        console.log("Loaded GeoJSON:", data);
-        const boundaryLayer = L.geoJSON(data, {
+        const geoLayer = L.geoJSON(data, {
           style: {
-            color: '#4900EE',   // Deep purple-blue border
-            weight: 3,          // 3px line thickness
-            fillOpacity: 0      // Transparent fill
+            color: '#4900EE',
+            weight: 3,
+            fillOpacity: 0
           },
           onEachFeature: (feature, layer) => layer.bindPopup("Project Area")
-        }).addTo(map);
-        map.fitBounds(boundaryLayer.getBounds(), { maxZoom: 15 });
+        });
+        geoLayer.addTo(boundaryLayer);
+        boundaryLayer.addTo(map);
+        map.fitBounds(geoLayer.getBounds(), { maxZoom: 15 });
       })
       .catch(err => {
         console.error("Failed to load GeoJSON:", err);
         alert("Could not load Project_Boundary.geojson. Check the console.");
       });
+
+    // 5. Define layer controls
+    var baseLayers = {
+      "Esri Light Gray": lightGrayBase,
+      "OpenStreetMap": osmBase
+    };
+
+    var overlays = {
+      "Esri Reference Labels": lightGrayLabels,
+      "Project Boundary": boundaryLayer
+    };
+
+    // 6. Add Layer Control
+    L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
   </script>
 </body>
 </html>
