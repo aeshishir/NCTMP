@@ -9,7 +9,7 @@
     body, html { margin: 0; padding: 0; height: 100%; }
     #map { height: 100vh; width: 100vw; }
 
-    .info-box, .legend, .label-toggle {
+    .info-box, .legend {
       background: white;
       padding: 5px;
       font-size: 12px;
@@ -29,13 +29,6 @@
       position: absolute;
       bottom: 10px;
       right: 10px;
-      z-index: 1000;
-    }
-
-    .label-toggle {
-      position: absolute;
-      top: 10px;
-      left: 10px;
       z-index: 1000;
     }
 
@@ -79,11 +72,6 @@
     <div class="legend-line"><div class="line-swatch solid-gray"></div>Secondary</div>
     <div class="legend-line"><div class="line-swatch dash-gray"></div>Secondary (Ext)</div>
   </div>
-  <div class="label-toggle">
-    <label>
-      <input type="checkbox" id="toggleLabels"> Show Road Names
-    </label>
-  </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
@@ -104,22 +92,56 @@
       maxZoom: 16
     }).addTo(map);
 
+    // Layers
     const boundaryLayer = L.layerGroup();
     const roadLayer = L.layerGroup();
     const roadLabels = [];
 
+    // Layer control with roads above boundary
     const baseLayers = {
       "Esri Light Gray": lightGrayBase,
       "OpenStreetMap": osmBase
     };
 
     const overlays = {
-      "Esri Reference Labels": labels,
+      "Proposed Roads": roadLayer,
       "Project Boundary": boundaryLayer,
-      "Proposed Roads": roadLayer
+      "Esri Reference Labels": labels
     };
 
-    L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+    const layerControl = L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+
+    // Inject Road Label toggle into layer control
+    map.on('layeradd', () => insertLabelToggle());
+    map.on('layerremove', () => insertLabelToggle());
+    insertLabelToggle();
+
+    function insertLabelToggle() {
+      const controlDivs = document.querySelectorAll('.leaflet-control-layers-overlays, .leaflet-control-layers-list');
+      if (controlDivs.length > 0) {
+        const container = controlDivs[0];
+        if (!document.getElementById('toggleLabels')) {
+          const labelOption = document.createElement('label');
+          labelOption.innerHTML = `
+            <input type="checkbox" id="toggleLabels" /> Road Name
+          `;
+          labelOption.style.display = "block";
+          labelOption.style.padding = "5px 0";
+          container.appendChild(labelOption);
+        }
+      }
+    }
+
+    // Toggle Road Name Labels
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.id === 'toggleLabels') {
+        if (e.target.checked) {
+          roadLabels.forEach(label => label.addTo(map));
+        } else {
+          roadLabels.forEach(label => map.removeLayer(label));
+        }
+      }
+    });
 
     const infoBox = document.getElementById('infoBox');
 
@@ -135,7 +157,7 @@
       infoBox.innerHTML = html;
     }
 
-    // Load boundary
+    // Load Project Boundary
     fetch('./Project_Boundary.geojson')
       .then(res => res.json())
       .then(data => {
@@ -154,7 +176,7 @@
         map.fitBounds(layer.getBounds(), { maxZoom: 15 });
       });
 
-    // Load roads and create labels
+    // Load Proposed Roads and create labels
     fetch('./Proposed_Road_2_NCC.geojson.geojson')
       .then(res => res.json())
       .then(data => {
@@ -188,15 +210,6 @@
         layer.addTo(roadLayer);
         roadLayer.addTo(map);
       });
-
-    // Toggle road labels
-    document.getElementById('toggleLabels').addEventListener('change', function (e) {
-      if (e.target.checked) {
-        roadLabels.forEach(label => label.addTo(map));
-      } else {
-        roadLabels.forEach(label => map.removeLayer(label));
-      }
-    });
   </script>
 </body>
 </html>
