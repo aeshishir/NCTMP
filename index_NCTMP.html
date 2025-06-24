@@ -15,28 +15,45 @@
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // 1. Initialize the map
+    // Initialize map
     var map = L.map('map').setView([23.8103, 90.4125], 13);
 
-    // 2. Define base layers
+    // Base layers
     var lightGrayBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
       maxZoom: 16
-    }).addTo(map); // Default base
+    }).addTo(map);
 
     var osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 19
     });
 
+    // Reference label overlay
     var lightGrayLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 16
-    }).addTo(map); // Add labels on top
+    }).addTo(map);
 
-    // 3. Placeholder for overlay
+    // Layer groups
     var boundaryLayer = L.layerGroup();
+    var proposedRoadsLayer = L.layerGroup();
 
-    // 4. Fetch and display the GeoJSON
+    // Base and overlay definitions
+    var baseLayers = {
+      "Esri Light Gray": lightGrayBase,
+      "OpenStreetMap": osmBase
+    };
+
+    var overlays = {
+      "Esri Reference Labels": lightGrayLabels,
+      "Project Boundary": boundaryLayer,
+      "Proposed Roads": proposedRoadsLayer
+    };
+
+    // Add layer control
+    var layerControl = L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+
+    // Load Project Boundary
     fetch('./Project_Boundary.geojson')
       .then(res => {
         if (!res.ok) throw new Error("GeoJSON not found");
@@ -57,22 +74,44 @@
       })
       .catch(err => {
         console.error("Failed to load GeoJSON:", err);
-        alert("Could not load Project_Boundary.geojson. Check the console.");
+        alert("Could not load Project_Boundary.geojson.");
       });
 
-    // 5. Define layer controls
-    var baseLayers = {
-      "Esri Light Gray": lightGrayBase,
-      "OpenStreetMap": osmBase
-    };
-
-    var overlays = {
-      "Esri Reference Labels": lightGrayLabels,
-      "Project Boundary": boundaryLayer
-    };
-
-    // 6. Add Layer Control
-    L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+    // Load Proposed Roads
+    fetch('./Proposed_Road_2_NCC.geojson.geojson')
+      .then(res => {
+        if (!res.ok) throw new Error("GeoJSON not found");
+        return res.json();
+      })
+      .then(data => {
+        const roadLayer = L.geoJSON(data, {
+          style: feature => {
+            const type = feature.properties?.Pro_Functi;
+            switch (type) {
+              case 'Primary':
+                return { color: '#FF7F7F', weight: 2, dashArray: null };
+              case 'Primary(Ext)':
+                return { color: '#FF7F7F', weight: 2, dashArray: '2,2' };
+              case 'Secondary Road':
+                return { color: '#828282', weight: 1, dashArray: null };
+              case 'Secondary Road(Ext)':
+                return { color: '#828282', weight: 1, dashArray: '2,2' };
+              default:
+                return { color: '#000000', weight: 1, dashArray: '1,3' };
+            }
+          },
+          onEachFeature: (feature, layer) => {
+            const roadType = feature.properties?.Pro_Functi || "Unknown";
+            layer.bindPopup(`Road Type: ${roadType}`);
+          }
+        });
+        roadLayer.addTo(proposedRoadsLayer);
+        proposedRoadsLayer.addTo(map);
+      })
+      .catch(err => {
+        console.error("Failed to load proposed roads GeoJSON:", err);
+        alert("Could not load Proposed_Road_2_NCC.geojson.geojson.");
+      });
   </script>
 </body>
 </html>
