@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NCTMP Project</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 100vh; margin: 0; }
+    body { margin: 0; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // 1. Initialize the map
+    var map = L.map('map').setView([23.8103, 90.4125], 13);
+
+    // 2. Add Esri Light Gray Canvas base layer
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+      maxZoom: 16
+    }).addTo(map);
+
+    // Optional: Add reference labels on top
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 16
+    }).addTo(map);
+
+    // 3. Load and display Project_Boundary.geojson
+    fetch('./Project_Boundary.geojson')
+      .then(res => {
+        if (!res.ok) throw new Error("GeoJSON not found");
+        return res.json();
+      })
+      .then(data => {
+        console.log("Loaded GeoJSON:", data);
+        const boundaryLayer = L.geoJSON(data, {
+          style: {
+            color: 'red',
+            weight: 2,
+            fillColor: '#f03',
+            fillOpacity: 0.3
+          },
+          onEachFeature: (feature, layer) => layer.bindPopup("Project Area")
+        }).addTo(map);
+        map.fitBounds(boundaryLayer.getBounds()); // Zoom to boundary
+      })
+      .catch(err => {
+        console.error("Failed to load GeoJSON:", err);
+        alert("Could not load Project_Boundary.geojson. Check the console.");
+      });
+  </script>
+</body>
+</html>
