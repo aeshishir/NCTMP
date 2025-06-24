@@ -6,30 +6,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; }
-    #map { height: 100vh; width: 100vw; }
-
-    .info-box, .legend {
-      background: white;
-      padding: 5px;
-      font-size: 12px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.3);
-      border-radius: 4px;
-      width: 100px;
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
     }
 
-    .info-box {
+    #map {
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Transparent banner container */
+    .left-banner {
       position: absolute;
       top: 10px;
-      right: 10px;
+      left: 10px;
+      width: 200px;
+      background: rgba(255, 255, 255, 0.8);
       z-index: 1000;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .legend {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      z-index: 1000;
+    .left-banner > * {
+      font-size: 12px;
+      color: black;
+      box-shadow: none;
+      border-radius: 0;
+      background: transparent;
     }
 
     .legend-line {
@@ -52,34 +60,55 @@
     .boundary    { border-color: #4900EE; border-style: solid; border-width: 3px; }
 
     .road-label {
-      color: #000;
+      color: black;
       font-size: 10px;
       background: rgba(255,255,255,0.8);
       padding: 1px 3px;
-      border-radius: 2px;
       white-space: nowrap;
-      font-weight: bold;
+    }
+
+    .leaflet-control-zoom {
+      left: 10px !important;
+      right: auto !important;
+      top: auto;
+      bottom: 10px;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="info-box" id="infoBox">Click on a feature</div>
-  <div class="legend" id="legendBox">
-    <div class="legend-line"><div class="line-swatch boundary"></div>Boundary</div>
-    <div class="legend-line"><div class="line-swatch solid-red"></div>Primary</div>
-    <div class="legend-line"><div class="line-swatch dash-red"></div>Primary (Ext)</div>
-    <div class="legend-line"><div class="line-swatch solid-gray"></div>Secondary</div>
-    <div class="legend-line"><div class="line-swatch dash-gray"></div>Secondary (Ext)</div>
+
+  <!-- Unified Left Panel -->
+  <div class="left-banner">
+    <div id="layerControlBox"></div>
+
+    <div>
+      <label><input type="checkbox" id="toggleLabels" /> Road Name (Show unnecessary)</label>
+    </div>
+
+    <div id="legendBox">
+      <div class="legend-line"><div class="line-swatch boundary"></div>Boundary</div>
+      <div class="legend-line"><div class="line-swatch solid-red"></div>Primary</div>
+      <div class="legend-line"><div class="line-swatch dash-red"></div>Primary (Ext)</div>
+      <div class="legend-line"><div class="line-swatch solid-gray"></div>Secondary</div>
+      <div class="legend-line"><div class="line-swatch dash-gray"></div>Secondary (Ext)</div>
+    </div>
+
+    <div id="infoBox">Click on a feature</div>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map').setView([23.8103, 90.4125], 13);
+    const map = L.map('map', {
+      zoomControl: true
+    }).setView([23.8103, 90.4125], 13);
+
+    // Move Zoom control to left
+    map.zoomControl.setPosition('bottomleft');
 
     // Base layers
     const lightGrayBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+      attribution: 'Tiles &copy; Esri',
       maxZoom: 16
     }).addTo(map);
 
@@ -92,12 +121,10 @@
       maxZoom: 16
     }).addTo(map);
 
-    // Layers
     const boundaryLayer = L.layerGroup();
     const roadLayer = L.layerGroup();
     const roadLabels = [];
 
-    // Layer control with roads above boundary
     const baseLayers = {
       "Esri Light Gray": lightGrayBase,
       "OpenStreetMap": osmBase
@@ -109,37 +136,22 @@
       "Esri Reference Labels": labels
     };
 
-    const layerControl = L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+    // Create control and move to container
+    const layerControl = L.control.layers(baseLayers, overlays, { collapsed: false });
+    layerControl.addTo(map);
 
-    // Inject Road Label toggle into layer control
-    map.on('layeradd', () => insertLabelToggle());
-    map.on('layerremove', () => insertLabelToggle());
-    insertLabelToggle();
-
-    function insertLabelToggle() {
-      const controlDivs = document.querySelectorAll('.leaflet-control-layers-overlays, .leaflet-control-layers-list');
-      if (controlDivs.length > 0) {
-        const container = controlDivs[0];
-        if (!document.getElementById('toggleLabels')) {
-          const labelOption = document.createElement('label');
-          labelOption.innerHTML = `
-            <input type="checkbox" id="toggleLabels" /> Road Name
-          `;
-          labelOption.style.display = "block";
-          labelOption.style.padding = "5px 0";
-          container.appendChild(labelOption);
-        }
-      }
+    const customContainer = document.getElementById('layerControlBox');
+    const leafletControl = document.querySelector('.leaflet-control-layers');
+    if (leafletControl && customContainer) {
+      customContainer.appendChild(leafletControl);
     }
 
-    // Toggle Road Name Labels
-    document.addEventListener('change', function (e) {
-      if (e.target && e.target.id === 'toggleLabels') {
-        if (e.target.checked) {
-          roadLabels.forEach(label => label.addTo(map));
-        } else {
-          roadLabels.forEach(label => map.removeLayer(label));
-        }
+    // Handle Road Label toggle
+    document.getElementById('toggleLabels').addEventListener('change', function (e) {
+      if (e.target.checked) {
+        roadLabels.forEach(label => label.addTo(map));
+      } else {
+        roadLabels.forEach(label => map.removeLayer(label));
       }
     });
 
@@ -157,7 +169,7 @@
       infoBox.innerHTML = html;
     }
 
-    // Load Project Boundary
+    // Load Project Boundary (unselectable)
     fetch('./Project_Boundary.geojson')
       .then(res => res.json())
       .then(data => {
@@ -167,16 +179,14 @@
             weight: 3,
             fillOpacity: 0
           },
-          onEachFeature: (feature, layer) => {
-            layer.on('click', () => updateInfoBox(feature.properties));
-          }
+          interactive: false  // disables hover/click
         });
         layer.addTo(boundaryLayer);
         boundaryLayer.addTo(map);
         map.fitBounds(layer.getBounds(), { maxZoom: 15 });
       });
 
-    // Load Proposed Roads and create labels
+    // Load Proposed Roads + labels
     fetch('./Proposed_Road_2_NCC.geojson.geojson')
       .then(res => res.json())
       .then(data => {
