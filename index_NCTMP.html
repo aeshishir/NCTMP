@@ -161,47 +161,45 @@
         roadLayer.addLayer(layer);
       });
 
-    fetch('./MT_Route.geojson')
-      .then(res => res.json())
-      .then(data => {
-        const colorMap = {
-  "LRT-A": "#102E50",
-  "LRT-B": "#4E1F00",
-  "MRT-2": "#AB4459"
-};
+fetch('./MT_Route.geojson')
+  .then(res => res.json())
+  .then(data => {
+    const colorMap = {
+      "LRT- A": "#102E50",
+      "LRT- B": "#4E1F00",
+      "MRT- 2": "#AB4459"
+    };
 
-        const layer = L.geoJSON(data, {
-          style: f => ({
-            color: colorMap[f.properties?.Name] || "#000",
-            weight: 2
-          }),
-          onEachFeature: (f, l) => {
-            l.on('click', () => updateInfoBox(f.properties));
+    const layer = L.geoJSON(data, {
+      style: f => ({
+        color: colorMap[f.properties?.Name] || "#000",
+        weight: 2
+      }),
+      onEachFeature: (f, l) => {
+        l.on('click', () => updateInfoBox(f.properties));
 
-            const decorator = L.polylineDecorator(l, {
-              patterns: [
-                {
-                  offset: 0,
-                  repeat: '15px',
-                  symbol: L.Symbol.line({
-                    pixelSize: 5,
-                    pathOptions: {
-                      color: colorMap[f.properties?.Name] || "#000",
-                      weight: 1
-                    }
-                  })
+        const decorator = L.polylineDecorator(l, {
+          patterns: [
+            {
+              offset: 0,
+              repeat: '15px',
+              symbol: L.Symbol.line({
+                pixelSize: 5,
+                pathOptions: {
+                  color: colorMap[f.properties?.Name] || "#000",
+                  weight: 1
                 }
-              ]
-            });
-
-            mtRouteLayer.addLayer(decorator);
-          }
+              })
+            }
+          ]
         });
-        mtRouteLayer.addLayer(layer);
-      });
 
-            
-      });
+        mtRouteLayer.addLayer(decorator);
+      }
+    });
+
+    mtRouteLayer.addLayer(layer);
+  });
 
     fetch('./MT_Stoppage.geojson')
       .then(res => res.json())
