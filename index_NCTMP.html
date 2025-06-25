@@ -171,32 +171,25 @@ fetch('./MT_Route.geojson')
       },
       onEachFeature: (f, l) => {
         l.on('click', () => updateInfoBox(f.properties));
-      }
-    });
 
-    geoJsonLayer.eachLayer(function (layer) {
-      const decorator = L.polylineDecorator(layer, {
-        patterns: [
-          {
-            offset: 0,
-            repeat: '15px',
-            symbol: L.Symbol.line({
-              pixelSize: 5,
-              pathOptions: {
-                color: '#000',
-                weight: 1
-              }
-            })
-          }
-        ]
-      });
+        const decorator = L.polylineDecorator(l, {
+          patterns: [
+            {
+              offset: 0,
+              repeat: '15px',
+              symbol: L.Symbol.line({
+                pixelSize: 5,
+                pathOptions: {
+                  color: '#000',
+                  weight: 1
+                }
+              })
+            }
+          ]
+        });
 
-      mtRouteLayer.addLayer(layer);
-      mtRouteLayer.addLayer(decorator);
-    });
-  });
-mtRouteLayer.addLayer(l);
-mtRouteLayer.addLayer(decorator);
+        mtRouteLayer.addLayer(l);
+        mtRouteLayer.addLayer(decorator);
       }
     });
   });
