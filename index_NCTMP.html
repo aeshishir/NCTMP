@@ -48,18 +48,11 @@
       display: inline-block;
     }
 
-    .solid-red { border-color: #FF7F7F; }
-    .dash-red  { border-color: #FF7F7F; border-style: dashed; }
-    .solid-gray { border-color: #828282; border-width: 1px; }
-    .dash-gray  { border-color: #828282; border-style: dashed; border-width: 1px; }
-    .boundary    { border-color: #4900EE; border-width: 3px; }
-
-    .road-label {
+    .road-label, .stoppage-label {
       color: black;
       font-size: 10px;
       background: rgba(255,255,255,0.8);
-      padding: 1px 3px;
-      white-space: nowrap;
+      padding: 2px;
     }
 
     .leaflet-control-zoom {
@@ -68,77 +61,58 @@
       top: auto;
       bottom: 10px;
     }
-
-    .stoppage-label {
-      font-size: 10px;
-      background: rgba(255,255,255,0.8);
-      padding: 2px;
-      color: black;
-    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-
   <div class="left-banner">
     <div id="layerControlBox"></div>
     <label><input type="checkbox" id="toggleLabels" /> Road Name (Show unnecessary)</label>
     <label><input type="checkbox" id="toggleStoppageLabels" /> Stoppage Name (Location)</label>
-
     <div id="legendBox">
-      <div class="legend-line"><div class="line-swatch boundary"></div>Boundary</div>
-      <div class="legend-line"><div class="line-swatch solid-red"></div>Primary</div>
-      <div class="legend-line"><div class="line-swatch dash-red"></div>Primary (Ext)</div>
+      <div class="legend-line"><div class="line-swatch" style="border-color:#4900EE; border-width:3px"></div>Boundary</div>
+      <div class="legend-line"><div class="line-swatch" style="border-color:#FF7F7F;"></div>Primary</div>
+      <div class="legend-line"><div class="line-swatch" style="border-color:#FF7F7F; border-style:dashed"></div>Primary (Ext)</div>
       <div class="legend-line"><div class="square-swatch" style="background:#FF9D23;"></div>LRT Stop</div>
       <div class="legend-line"><div class="square-swatch" style="background:#0009DE;"></div>MRT Stop</div>
     </div>
-
     <div id="infoBox">Click on a feature</div>
   </div>
 
-  <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <!-- PolylineDecorator plugin -->
   <script src="https://unpkg.com/leaflet-polylinedecorator"></script>
-
   <script>
     const map = L.map('map').setView([23.8103, 90.4125], 13);
     map.zoomControl.setPosition('bottomleft');
 
-    // Base layers
-    const lightGray = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles © Esri'
-    }).addTo(map);
-    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    const base = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}').addTo(map);
     const labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}').addTo(map);
 
-    const boundaryLayer = L.layerGroup();
-    const roadLayer = L.layerGroup();
-    const mtRouteLayer = L.layerGroup();
-    const mtStopLayer = L.layerGroup();
+    const boundaryLayer = L.layerGroup().addTo(map);
+    const roadLayer = L.layerGroup().addTo(map);
+    const mtRouteLayer = L.layerGroup().addTo(map);
+    const mtStopLayer = L.layerGroup().addTo(map);
+
     const roadLabels = [], stoppageLabels = [];
 
-    const baseLayers = { "Esri Light Gray": lightGray, "OpenStreetMap": osm };
+    const baseLayers = { "Esri Light Gray": base };
     const overlays = {
-      "Proposed Roads": roadLayer,
       "Project Boundary": boundaryLayer,
+      "Proposed Roads": roadLayer,
       "MT Routes": mtRouteLayer,
       "MT Stoppage": mtStopLayer,
-      "Esri Reference Labels": labels
+      "Reference Labels": labels
     };
 
-    const layerControl = L.control.layers(baseLayers, overlays, { collapsed: false });
-    layerControl.addTo(map);
-
-    // Move to left banner
+    const layerControl = L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
     document.getElementById('layerControlBox').appendChild(document.querySelector('.leaflet-control-layers'));
 
     document.getElementById('toggleLabels').addEventListener('change', e => {
-      roadLabels.forEach(lbl => e.target.checked ? lbl.addTo(map) : map.removeLayer(lbl));
+      roadLabels.forEach(l => e.target.checked ? l.addTo(map) : map.removeLayer(l));
     });
 
     document.getElementById('toggleStoppageLabels').addEventListener('change', e => {
-      stoppageLabels.forEach(lbl => e.target.checked ? lbl.addTo(map) : map.removeLayer(lbl));
+      stoppageLabels.forEach(l => e.target.checked ? l.addTo(map) : map.removeLayer(l));
     });
 
     const infoBox = document.getElementById('infoBox');
@@ -146,7 +120,6 @@
       infoBox.innerHTML = props ? Object.entries(props).map(([k,v]) => `<strong>${k}:</strong> ${v}<br>`).join('') : 'Click on a feature';
     }
 
-    // Project Boundary
     fetch('./Project_Boundary.geojson')
       .then(res => res.json())
       .then(data => {
@@ -154,12 +127,10 @@
           style: { color: '#4900EE', weight: 3, fillOpacity: 0 },
           interactive: false
         });
-        layer.addTo(boundaryLayer);
-        boundaryLayer.addTo(map);
+        boundaryLayer.addLayer(layer);
         map.fitBounds(layer.getBounds());
       });
 
-    // Proposed Roads
     fetch('./Proposed_Road_2_NCC.geojson.geojson')
       .then(res => res.json())
       .then(data => {
@@ -183,51 +154,49 @@
               roadLabels.push(label);
             }
           }
-        }).addTo(roadLayer);
+        });
+        roadLayer.addLayer(layer);
       });
 
-fetch('./MT_Route.geojson')
-  .then(res => res.json())
-  .then(data => {
-    const colorMap = {
-      "LRT Line 1": "#102E50",
-      "LRT Line 2": "#4E1F00",
-      "MRT Line 6": "#AB4459"
-    };
+    fetch('./MT_Route.geojson')
+      .then(res => res.json())
+      .then(data => {
+        const colorMap = {
+          "LRT Line 1": "#102E50",
+          "LRT Line 2": "#4E1F00",
+          "MRT Line 6": "#AB4459"
+        };
 
-    const routes = L.geoJSON(data, {
-      style: f => ({
-        color: colorMap[f.properties?.Name] || "#000",
-        weight: 2
-      }),
-      onEachFeature: (feature, layer) => {
-        layer.on('click', () => updateInfoBox(feature.properties));
+        const layer = L.geoJSON(data, {
+          style: f => ({
+            color: colorMap[f.properties?.Name] || "#000",
+            weight: 2
+          }),
+          onEachFeature: (f, l) => {
+            l.on('click', () => updateInfoBox(f.properties));
 
-        // Decorator for perpendicular ties
-        const color = colorMap[feature.properties?.Name] || "#000";
-        const decorator = L.polylineDecorator(layer, {
-          patterns: [
-            {
-              offset: 0,
-              repeat: '15px',
-              symbol: L.Symbol.line({
-                pixelSize: 5,
-                pathOptions: {
-                  color: color,
-                  weight: 1
+            const decorator = L.polylineDecorator(l, {
+              patterns: [
+                {
+                  offset: 0,
+                  repeat: '15px',
+                  symbol: L.Symbol.line({
+                    pixelSize: 5,
+                    pathOptions: {
+                      color: colorMap[f.properties?.Name] || "#000",
+                      weight: 1
+                    }
+                  })
                 }
-              })
-            }
-          ]
+              ]
+            });
+
+            mtRouteLayer.addLayer(l);
+            mtRouteLayer.addLayer(decorator);
+          }
         });
+      });
 
-        mtRouteLayer.addLayer(layer);
-        mtRouteLayer.addLayer(decorator);
-      }
-    });
-  });
-
-    // MT Stoppages
     fetch('./MT_Stoppage.geojson')
       .then(res => res.json())
       .then(data => {
@@ -237,23 +206,22 @@ fetch('./MT_Route.geojson')
             let color = type === 'LRT' ? '#FF9D23' : '#0009DE';
             let letter = type === 'LRT' ? 'L' : 'M';
             const icon = L.divIcon({
-              className: '',
-              html: `<div style="width:14px;height:14px;background:${color};color:white;font-weight:bold;font-family:Arial Black;font-size:10px;text-align:center;line-height:14px">${letter}</div>`,
-              iconSize: [14,14]
+              html: `<div style="width:14px;height:14px;background:${color};color:white;font-weight:bold;font-family:Arial Black;font-size:10px;text-align:center;line-height:14px">${letter}</div>`
             });
             return L.marker(latlng, { icon });
           },
-          onEachFeature: (f, layer) => {
-            layer.on('click', () => updateInfoBox(f.properties));
+          onEachFeature: (f, l) => {
+            l.on('click', () => updateInfoBox(f.properties));
             const name = f.properties?.Location;
             if (name) {
-              const label = L.marker(layer.getLatLng(), {
+              const label = L.marker(l.getLatLng(), {
                 icon: L.divIcon({ className: 'stoppage-label', html: name })
               });
               stoppageLabels.push(label);
             }
           }
-        }).addTo(mtStopLayer);
+        });
+        mtStopLayer.addLayer(layer);
       });
   </script>
 </body>
