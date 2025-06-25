@@ -69,7 +69,10 @@
     <div id="layerControlBox"></div>
     <label><input type="checkbox" id="toggleLabels" /> Road Name (Show unnecessary)</label>
     <label><input type="checkbox" id="toggleStoppageLabels" /> Stoppage Name (Location)</label>
-    <div id="legendBox">
+    $1
+      <div class="legend-line"><div class="line-swatch" style="border-color:#102E50;"></div>LRT Line 1</div>
+      <div class="legend-line"><div class="line-swatch" style="border-color:#4E1F00;"></div>LRT Line 2</div>
+      <div class="legend-line"><div class="line-swatch" style="border-color:#AB4459;"></div>MRT Line 6</div>
       <div class="legend-line"><div class="line-swatch" style="border-color:#4900EE; border-width:3px"></div>Boundary</div>
       <div class="legend-line"><div class="line-swatch" style="border-color:#FF7F7F;"></div>Primary</div>
       <div class="legend-line"><div class="line-swatch" style="border-color:#FF7F7F; border-style:dashed"></div>Primary (Ext)</div>
@@ -191,7 +194,6 @@
               ]
             });
 
-            mtRouteLayer.addLayer(l);
             mtRouteLayer.addLayer(decorator);
           }
         });
