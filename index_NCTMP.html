@@ -171,27 +171,10 @@ fetch('./MT_Route.geojson')
       },
       onEachFeature: (f, l) => {
         l.on('click', () => updateInfoBox(f.properties));
-
-        const decorator = L.polylineDecorator(l, {
-          patterns: [
-            {
-              offset: 0,
-              repeat: '15px',
-              symbol: L.Symbol.line({
-                pixelSize: 5,
-                pathOptions: {
-                  color: '#000',
-                  weight: 1
-                }
-              })
-            }
-          ]
-        });
-
         mtRouteLayer.addLayer(l);
-        mtRouteLayer.addLayer(decorator);
       }
     });
+  });
   });
 
     fetch('./MT_Stoppage.geojson')
