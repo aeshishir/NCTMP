@@ -6,19 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: sans-serif;
-    }
+    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+    #map { height: 100vh; width: 100vw; }
 
-    #map {
-      height: 100vh;
-      width: 100vw;
-    }
-
-    /* Transparent banner container */
     .left-banner {
       position: absolute;
       top: 10px;
@@ -35,8 +25,6 @@
     .left-banner > * {
       font-size: 12px;
       color: black;
-      box-shadow: none;
-      border-radius: 0;
       background: transparent;
     }
 
@@ -53,11 +41,18 @@
       margin-right: 5px;
     }
 
-    .solid-red { border-color: #FF7F7F; border-style: solid; }
+    .square-swatch {
+      width: 14px;
+      height: 14px;
+      margin-right: 5px;
+      display: inline-block;
+    }
+
+    .solid-red { border-color: #FF7F7F; }
     .dash-red  { border-color: #FF7F7F; border-style: dashed; }
-    .solid-gray { border-color: #828282; border-style: solid; border-width: 1px; }
+    .solid-gray { border-color: #828282; border-width: 1px; }
     .dash-gray  { border-color: #828282; border-style: dashed; border-width: 1px; }
-    .boundary    { border-color: #4900EE; border-style: solid; border-width: 3px; }
+    .boundary    { border-color: #4900EE; border-width: 3px; }
 
     .road-label {
       color: black;
@@ -73,152 +68,186 @@
       top: auto;
       bottom: 10px;
     }
+
+    .stoppage-label {
+      font-size: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 2px;
+      color: black;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- Unified Left Panel -->
   <div class="left-banner">
     <div id="layerControlBox"></div>
-
-    <div>
-      <label><input type="checkbox" id="toggleLabels" /> Road Name (Show unnecessary)</label>
-    </div>
+    <label><input type="checkbox" id="toggleLabels" /> Road Name (Show unnecessary)</label>
+    <label><input type="checkbox" id="toggleStoppageLabels" /> Stoppage Name (Location)</label>
 
     <div id="legendBox">
       <div class="legend-line"><div class="line-swatch boundary"></div>Boundary</div>
       <div class="legend-line"><div class="line-swatch solid-red"></div>Primary</div>
       <div class="legend-line"><div class="line-swatch dash-red"></div>Primary (Ext)</div>
-      <div class="legend-line"><div class="line-swatch solid-gray"></div>Secondary</div>
-      <div class="legend-line"><div class="line-swatch dash-gray"></div>Secondary (Ext)</div>
+      <div class="legend-line"><div class="square-swatch" style="background:#FF9D23;"></div>LRT Stop</div>
+      <div class="legend-line"><div class="square-swatch" style="background:#0009DE;"></div>MRT Stop</div>
     </div>
 
     <div id="infoBox">Click on a feature</div>
   </div>
 
+  <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    const map = L.map('map', {
-      zoomControl: true
-    }).setView([23.8103, 90.4125], 13);
+  <!-- PolylineDecorator plugin -->
+  <script src="https://unpkg.com/leaflet-polylinedecorator"></script>
 
-    // Move Zoom control to left
+  <script>
+    const map = L.map('map').setView([23.8103, 90.4125], 13);
     map.zoomControl.setPosition('bottomleft');
 
     // Base layers
-    const lightGrayBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri',
-      maxZoom: 16
+    const lightGray = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri'
     }).addTo(map);
-
-    const osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19
-    });
-
-    const labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 16
-    }).addTo(map);
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    const labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}').addTo(map);
 
     const boundaryLayer = L.layerGroup();
     const roadLayer = L.layerGroup();
-    const roadLabels = [];
+    const mtRouteLayer = L.layerGroup();
+    const mtStopLayer = L.layerGroup();
+    const roadLabels = [], stoppageLabels = [];
 
-    const baseLayers = {
-      "Esri Light Gray": lightGrayBase,
-      "OpenStreetMap": osmBase
-    };
-
+    const baseLayers = { "Esri Light Gray": lightGray, "OpenStreetMap": osm };
     const overlays = {
       "Proposed Roads": roadLayer,
       "Project Boundary": boundaryLayer,
+      "MT Routes": mtRouteLayer,
+      "MT Stoppage": mtStopLayer,
       "Esri Reference Labels": labels
     };
 
-    // Create control and move to container
     const layerControl = L.control.layers(baseLayers, overlays, { collapsed: false });
     layerControl.addTo(map);
 
-    const customContainer = document.getElementById('layerControlBox');
-    const leafletControl = document.querySelector('.leaflet-control-layers');
-    if (leafletControl && customContainer) {
-      customContainer.appendChild(leafletControl);
-    }
+    // Move to left banner
+    document.getElementById('layerControlBox').appendChild(document.querySelector('.leaflet-control-layers'));
 
-    // Handle Road Label toggle
-    document.getElementById('toggleLabels').addEventListener('change', function (e) {
-      if (e.target.checked) {
-        roadLabels.forEach(label => label.addTo(map));
-      } else {
-        roadLabels.forEach(label => map.removeLayer(label));
-      }
+    document.getElementById('toggleLabels').addEventListener('change', e => {
+      roadLabels.forEach(lbl => e.target.checked ? lbl.addTo(map) : map.removeLayer(lbl));
+    });
+
+    document.getElementById('toggleStoppageLabels').addEventListener('change', e => {
+      stoppageLabels.forEach(lbl => e.target.checked ? lbl.addTo(map) : map.removeLayer(lbl));
     });
 
     const infoBox = document.getElementById('infoBox');
-
     function updateInfoBox(props) {
-      if (!props) {
-        infoBox.innerHTML = 'Click on a feature';
-        return;
-      }
-      let html = '';
-      for (let key in props) {
-        html += `<strong>${key}:</strong> ${props[key]}<br>`;
-      }
-      infoBox.innerHTML = html;
+      infoBox.innerHTML = props ? Object.entries(props).map(([k,v]) => `<strong>${k}:</strong> ${v}<br>`).join('') : 'Click on a feature';
     }
 
-    // Load Project Boundary (unselectable)
+    // Project Boundary
     fetch('./Project_Boundary.geojson')
       .then(res => res.json())
       .then(data => {
         const layer = L.geoJSON(data, {
-          style: {
-            color: '#4900EE',
-            weight: 3,
-            fillOpacity: 0
-          },
-          interactive: false  // disables hover/click
+          style: { color: '#4900EE', weight: 3, fillOpacity: 0 },
+          interactive: false
         });
         layer.addTo(boundaryLayer);
         boundaryLayer.addTo(map);
-        map.fitBounds(layer.getBounds(), { maxZoom: 15 });
+        map.fitBounds(layer.getBounds());
       });
 
-    // Load Proposed Roads + labels
+    // Proposed Roads
     fetch('./Proposed_Road_2_NCC.geojson.geojson')
       .then(res => res.json())
       .then(data => {
         const layer = L.geoJSON(data, {
-          style: feature => {
-            const t = feature.properties?.Pro_Functi;
-            switch (t) {
-              case 'Primary': return { color: '#FF7F7F', weight: 2 };
-              case 'Primary(Ext)': return { color: '#FF7F7F', weight: 2, dashArray: '2,2' };
-              case 'Secondary Road': return { color: '#828282', weight: 1 };
-              case 'Secondary Road(Ext)': return { color: '#828282', weight: 1, dashArray: '2,2' };
-              default: return { color: '#000', weight: 1, dashArray: '1,3' };
-            }
+          style: f => {
+            const t = f.properties?.Pro_Functi;
+            if (t === 'Primary') return { color: '#FF7F7F', weight: 2 };
+            if (t === 'Primary(Ext)') return { color: '#FF7F7F', weight: 2, dashArray: '2,2' };
+            if (t === 'Secondary Road') return { color: '#828282', weight: 1 };
+            if (t === 'Secondary Road(Ext)') return { color: '#828282', weight: 1, dashArray: '2,2' };
+            return { color: '#000', weight: 1 };
           },
-          onEachFeature: (feature, layer) => {
-            layer.on('click', () => updateInfoBox(feature.properties));
-            const name = feature.properties?.Road_Name;
+          onEachFeature: (f, l) => {
+            l.on('click', () => updateInfoBox(f.properties));
+            const name = f.properties?.Road_Name;
             if (name) {
-              const center = layer.getBounds().getCenter();
+              const center = l.getBounds().getCenter();
               const label = L.marker(center, {
-                icon: L.divIcon({
-                  className: 'road-label',
-                  html: name,
-                  iconSize: null
-                })
+                icon: L.divIcon({ className: 'road-label', html: name, iconSize: null })
               });
               roadLabels.push(label);
             }
           }
-        });
-        layer.addTo(roadLayer);
-        roadLayer.addTo(map);
+        }).addTo(roadLayer);
+      });
+
+    // MT Routes
+    fetch('./MT_Route.geojson')
+      .then(res => res.json())
+      .then(data => {
+        const layer = L.geoJSON(data, {
+          style: f => {
+            const colorMap = {
+              "Name1": "#102E50",
+              "Name2": "#4E1F00",
+              "Name3": "#AB4459"
+            };
+            return {
+              color: colorMap[f.properties?.Name] || "#000",
+              weight: 2
+            };
+          },
+          onEachFeature: (f, l) => l.on('click', () => updateInfoBox(f.properties))
+        }).addTo(mtRouteLayer);
+
+        // Add rail-like symbol
+        L.polylineDecorator(layer, {
+          patterns: [
+            {
+              offset: 0,
+              repeat: '30px',
+              symbol: L.Symbol.marker({
+                markerOptions: {
+                  icon: L.divIcon({ html: '+', className: 'road-label', iconSize: [10, 10] })
+                }
+              })
+            }
+          ]
+        }).addTo(mtRouteLayer);
+      });
+
+    // MT Stoppages
+    fetch('./MT_Stoppage.geojson')
+      .then(res => res.json())
+      .then(data => {
+        const layer = L.geoJSON(data, {
+          pointToLayer: (f, latlng) => {
+            const type = f.properties?.Type;
+            let color = type === 'LRT' ? '#FF9D23' : '#0009DE';
+            let letter = type === 'LRT' ? 'L' : 'M';
+            const icon = L.divIcon({
+              className: '',
+              html: `<div style="width:14px;height:14px;background:${color};color:white;font-weight:bold;font-family:Arial Black;font-size:10px;text-align:center;line-height:14px">${letter}</div>`,
+              iconSize: [14,14]
+            });
+            return L.marker(latlng, { icon });
+          },
+          onEachFeature: (f, layer) => {
+            layer.on('click', () => updateInfoBox(f.properties));
+            const name = f.properties?.Location;
+            if (name) {
+              const label = L.marker(layer.getLatLng(), {
+                icon: L.divIcon({ className: 'stoppage-label', html: name })
+              });
+              stoppageLabels.push(label);
+            }
+          }
+        }).addTo(mtStopLayer);
       });
   </script>
 </body>
