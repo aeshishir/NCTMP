@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Aptos', sans-serif; font-size: 12pt; }
     #map { height: 100vh; width: 100vw; }
 
     .left-banner {
@@ -74,6 +74,8 @@
       <div class="legend-line"><div class="line-swatch" style="border-color:#4900EE; border-width:3px"></div>Boundary</div>
       <div class="legend-line"><div class="line-swatch" style="border-color:#FF7F7F;"></div>Primary</div>
       <div class="legend-line"><div class="line-swatch" style="border-color:#FF7F7F; border-style:dashed"></div>Primary (Ext)</div>
+<div class="legend-line"><div class="line-swatch" style="border-color:#828282;"></div>Secondary</div>
+<div class="legend-line"><div class="line-swatch" style="border-color:#828282; border-style:dashed"></div>Secondary (Ext)</div>
       <div class="legend-line"><div class="square-swatch" style="background:#FF9D23;"></div>LRT Stop</div>
       <div class="legend-line"><div class="square-swatch" style="background:#0009DE;"></div>MRT Stop</div>
     </div>
@@ -162,34 +164,39 @@
 fetch('./MT_Route.geojson')
   .then(res => res.json())
   .then(data => {
-    const layer = L.geoJSON(data, {
+    const geoJsonLayer = L.geoJSON(data, {
       style: {
         color: '#000',
         weight: 2
       },
       onEachFeature: (f, l) => {
         l.on('click', () => updateInfoBox(f.properties));
+      }
+    });
 
-        const coords = l.getLatLngs();
-        const line = L.polyline(coords, { color: '#000', weight: 2 });
-        const decorator = L.polylineDecorator(line, {
-          patterns: [
-            {
-              offset: 0,
-              repeat: '15px',
-              symbol: L.Symbol.line({
-                pixelSize: 5,
-                pathOptions: {
-                  color: '#000',
-                  weight: 1
-                }
-              })
-            }
-          ]
-        });
+    geoJsonLayer.eachLayer(function (layer) {
+      const decorator = L.polylineDecorator(layer, {
+        patterns: [
+          {
+            offset: 0,
+            repeat: '15px',
+            symbol: L.Symbol.line({
+              pixelSize: 5,
+              pathOptions: {
+                color: '#000',
+                weight: 1
+              }
+            })
+          }
+        ]
+      });
 
-        mtRouteLayer.addLayer(line);
-        mtRouteLayer.addLayer(decorator);
+      mtRouteLayer.addLayer(layer);
+      mtRouteLayer.addLayer(decorator);
+    });
+  });
+mtRouteLayer.addLayer(l);
+mtRouteLayer.addLayer(decorator);
       }
     });
   });
@@ -221,5 +228,8 @@ fetch('./MT_Route.geojson')
         mtStopLayer.addLayer(layer);
       });
   </script>
+<div style="position:absolute; bottom:0; left:10px; background:rgba(255,255,255,0.7); font-size:11px; padding:4px 6px; z-index:1000;">
+  Tiles &copy; <a href="https://www.esri.com" target="_blank">Esri</a> | Map powered by <a href="https://leafletjs.com/" target="_blank">Leaflet</a>
+</div>
 </body>
 </html>
