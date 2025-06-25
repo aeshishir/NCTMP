@@ -164,13 +164,15 @@ fetch('./MT_Route.geojson')
   .then(data => {
     const layer = L.geoJSON(data, {
       style: {
-        color: '#000', // common rail color
+        color: '#000',
         weight: 2
       },
       onEachFeature: (f, l) => {
         l.on('click', () => updateInfoBox(f.properties));
 
-        const decorator = L.polylineDecorator(l, {
+        const coords = l.getLatLngs();
+        const line = L.polyline(coords, { color: '#000', weight: 2 });
+        const decorator = L.polylineDecorator(line, {
           patterns: [
             {
               offset: 0,
@@ -186,11 +188,10 @@ fetch('./MT_Route.geojson')
           ]
         });
 
+        mtRouteLayer.addLayer(line);
         mtRouteLayer.addLayer(decorator);
       }
     });
-
-    mtRouteLayer.addLayer(layer);
   });
 
     fetch('./MT_Stoppage.geojson')
