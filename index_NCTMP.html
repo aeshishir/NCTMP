@@ -186,40 +186,46 @@
         }).addTo(roadLayer);
       });
 
-    // MT Routes
-    fetch('./MT_Route.geojson')
-      .then(res => res.json())
-      .then(data => {
-        const layer = L.geoJSON(data, {
-          style: f => {
-            const colorMap = {
-              "Name1": "#102E50",
-              "Name2": "#4E1F00",
-              "Name3": "#AB4459"
-            };
-            return {
-              color: colorMap[f.properties?.Name] || "#000",
-              weight: 2
-            };
-          },
-          onEachFeature: (f, l) => l.on('click', () => updateInfoBox(f.properties))
-        }).addTo(mtRouteLayer);
+fetch('./MT_Route.geojson')
+  .then(res => res.json())
+  .then(data => {
+    const colorMap = {
+      "LRT Line 1": "#102E50",
+      "LRT Line 2": "#4E1F00",
+      "MRT Line 6": "#AB4459"
+    };
 
-        // Add rail-like symbol
-        L.polylineDecorator(layer, {
+    const routes = L.geoJSON(data, {
+      style: f => ({
+        color: colorMap[f.properties?.Name] || "#000",
+        weight: 2
+      }),
+      onEachFeature: (feature, layer) => {
+        layer.on('click', () => updateInfoBox(feature.properties));
+
+        // Decorator for perpendicular ties
+        const color = colorMap[feature.properties?.Name] || "#000";
+        const decorator = L.polylineDecorator(layer, {
           patterns: [
             {
               offset: 0,
-              repeat: '30px',
-              symbol: L.Symbol.marker({
-                markerOptions: {
-                  icon: L.divIcon({ html: '+', className: 'road-label', iconSize: [10, 10] })
+              repeat: '15px',
+              symbol: L.Symbol.line({
+                pixelSize: 5,
+                pathOptions: {
+                  color: color,
+                  weight: 1
                 }
               })
             }
           ]
-        }).addTo(mtRouteLayer);
-      });
+        });
+
+        mtRouteLayer.addLayer(layer);
+        mtRouteLayer.addLayer(decorator);
+      }
+    });
+  });
 
     // MT Stoppages
     fetch('./MT_Stoppage.geojson')
