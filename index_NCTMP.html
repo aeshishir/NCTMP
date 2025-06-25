@@ -76,8 +76,8 @@
       <div class="legend-line"><div class="line-swatch" style="border-color:#FF7F7F; border-style:dashed"></div>Primary (Ext)</div>
 <div class="legend-line"><div class="line-swatch" style="border-color:#828282;"></div>Secondary</div>
 <div class="legend-line"><div class="line-swatch" style="border-color:#828282; border-style:dashed"></div>Secondary (Ext)</div>
-      <div class="legend-line"><div class="square-swatch" style="background:#FF9D23;"></div>LRT Stop</div>
-      <div class="legend-line"><div class="square-swatch" style="background:#0009DE;"></div>MRT Stop</div>
+      <div class=\"legend-line\"><div class=\"square-swatch\" style=\"background:#FF9D23; color:white; font-size:10px; font-family:Arial Black; line-height:14px; text-align:center; display:flex; align-items:center; justify-content:center;\">L</div>LRT Station</div>
+      <div class=\"legend-line\"><div class=\"square-swatch\" style=\"background:#0009DE; color:white; font-size:10px; font-family:Arial Black; line-height:14px; text-align:center; display:flex; align-items:center; justify-content:center;\">M</div>MRT Station</div>
     </div>
     <div id="infoBox">Click on a feature</div>
   </div>
@@ -171,9 +171,10 @@ fetch('./MT_Route.geojson')
       },
       onEachFeature: (f, l) => {
         l.on('click', () => updateInfoBox(f.properties));
-        mtRouteLayer.addLayer(l);
       }
     });
+    mtRouteLayer.addLayer(geoJsonLayer);
+  });
   });
   });
 
