@@ -70,9 +70,9 @@
     <label><input type="checkbox" id="toggleLabels" /> Road Name (Show unnecessary)</label>
     <label><input type="checkbox" id="toggleStoppageLabels" /> Stoppage Name (Location)</label>
     $1
-      <div class="legend-line"><div class="line-swatch" style="border-color:#102E50;"></div>LRT Line 1</div>
-      <div class="legend-line"><div class="line-swatch" style="border-color:#4E1F00;"></div>LRT Line 2</div>
-      <div class="legend-line"><div class="line-swatch" style="border-color:#AB4459;"></div>MRT Line 6</div>
+      <div class="legend-line"><div class="line-swatch" style="border-color:#102E50;"></div>LRT-A</div>
+<div class="legend-line"><div class="line-swatch" style="border-color:#4E1F00;"></div>LRT-B</div>
+<div class="legend-line"><div class="line-swatch" style="border-color:#AB4459;"></div>MRT-2</div>
       <div class="legend-line"><div class="line-swatch" style="border-color:#4900EE; border-width:3px"></div>Boundary</div>
       <div class="legend-line"><div class="line-swatch" style="border-color:#FF7F7F;"></div>Primary</div>
       <div class="legend-line"><div class="line-swatch" style="border-color:#FF7F7F; border-style:dashed"></div>Primary (Ext)</div>
@@ -165,10 +165,10 @@
       .then(res => res.json())
       .then(data => {
         const colorMap = {
-          "LRT Line 1": "#102E50",
-          "LRT Line 2": "#4E1F00",
-          "MRT Line 6": "#AB4459"
-        };
+  "LRT-A": "#102E50",
+  "LRT-B": "#4E1F00",
+  "MRT-2": "#AB4459"
+};
 
         const layer = L.geoJSON(data, {
           style: f => ({
@@ -200,10 +200,7 @@
         mtRouteLayer.addLayer(layer);
       });
 
-            mtRouteLayer.addLayer(l);
-            mtRouteLayer.addLayer(decorator);
-          }
-        });
+            
       });
 
     fetch('./MT_Stoppage.geojson')
